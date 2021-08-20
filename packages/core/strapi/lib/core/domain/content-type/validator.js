@@ -1,6 +1,6 @@
 'use strict';
 
-const { keyBy, mapValues } = require('lodash');
+const { keyBy, mapValues, isUndefined, isEmpty } = require('lodash');
 const { yup } = require('@strapi/utils');
 
 // To replace by directly using implemented lifecycles
@@ -17,6 +17,7 @@ const contentTypeSchemaValidator = yup.object().shape({
     info: yup
       .object()
       .shape({
+        displayName: yup.string().required(),
         singularName: yup
           .string()
           .isKebabCase()
@@ -24,8 +25,15 @@ const contentTypeSchemaValidator = yup.object().shape({
         pluralName: yup
           .string()
           .isKebabCase()
-          .required(),
-        displayName: yup.string().required(),
+          .test(
+            'has pluralName',
+            '${path} is required if the content-type is a collection-type and should be undefined if it is a singleType.',
+            (value, context) => {
+              return context.from[1].value.kind === 'singleType'
+                ? isUndefined(value)
+                : !isEmpty(value);
+            }
+          ),
       })
       .required(),
   }),
